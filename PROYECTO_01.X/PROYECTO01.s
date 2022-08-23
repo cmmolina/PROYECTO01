@@ -202,6 +202,7 @@ SETUP:
     
     ;MOVLW 0
     ;MOVWF contadorseg
+    ;Ojito
    
     ;MOVLW 0
     ;MOVWF contadorsec
@@ -330,7 +331,7 @@ MODO_DISPLAY:
     BCF BANDERAS, 5
     GOTO LOOP
 MODO_FECHA:
-    CALL DELAY
+    ;CALL DELAY
     
     ;Filtro de Días
     ;MOVF contadordias, W
@@ -453,7 +454,56 @@ MODO_CONFIGHORA:
     GOTO LOOP
     
 MODO_CONFIGFECHA:
-GOTO LOOP
+    
+    BSF PORTD, 2
+    MOVF contadordias1, W
+    CALL TABLA 
+    MOVWF PORTC
+    CALL DELAY
+    BCF PORTD, 2
+    
+    BSF PORTD, 3
+    MOVF contadordias2, W
+    CALL TABLA 
+    MOVWF PORTC
+    CALL DELAY
+    BCF PORTD, 3
+    
+    BSF PORTD, 4
+    MOVF contadormeses1, W
+    CALL TABLA 
+    MOVWF PORTC
+    CALL DELAY
+    BCF PORTD, 4
+    
+    BSF PORTD, 5
+    MOVF contadormeses2, W
+    CALL TABLA 
+    MOVWF PORTC
+    CALL DELAY
+    BCF PORTD, 5    
+    
+    ;Incrementar Dias 
+    BTFSC FLAG, 0
+    CALL INCREMENTARDIAS
+    
+    ;Decrementar Dias
+    BTFSC FLAG, 1
+    CALL DECREMENTARDIAS
+
+    ;Incrementar Meses
+    BTFSC FLAG, 2
+    CALL INCREMENTARMESES
+   
+    ;Decrementar Meses
+    BTFSC FLAG, 3
+    CALL DECREMENTARMESES
+    
+    BCF FLAG, 0
+    BCF FLAG, 1
+    BCF FLAG, 2
+    BCF FLAG, 3
+    GOTO LOOP
 
     
 ;*********************************Tablas****************************************
@@ -492,6 +542,21 @@ TABLA2:
     RETLW 31     	;Diciembre    
 
 ;******************************Subrutinas***************************************
+INCREMENTOMESES: 
+    INCF contadormeses, F
+    RETURN
+
+DECREMENTOMESES:
+    DECF contadormeses, F
+    RETURN
+
+INCREMENTODIAS: 
+    INCF contadordias, F
+    RETURN
+DECREMENTODIAS:
+    DECF contadordias, F
+    RETURN
+    
 SEGUNDOS: 
     CLRF contadorseg
     INCF contadorsec, F
