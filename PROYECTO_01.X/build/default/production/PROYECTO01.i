@@ -2524,6 +2524,12 @@ PSECT udata_bank0
     DS 1
  BANDOLERO:
     DS 1
+ variablex:
+    DS 1
+ contadordiasx:
+    DS 1
+ VAR:
+    DS 1
 ;*******************************************************************************
 ; Vector Reset
 ;*******************************************************************************
@@ -2604,8 +2610,10 @@ MODO:
     GOTO COMANDO2
     BTFSC BANDERAS, 2 ;Se selecciona Modo Configuración de Fecha
     GOTO COMANDO3
-    BTFSC BANDERAS, 3 ;Se selecciona Modo Hora
+    BTFSC VAR, 0
     GOTO COMANDO4
+    BTFSC BANDERAS, 3 ;Se selecciona Modo Hora
+    GOTO COMANDO5
 
     GOTO resetRBIF
 COMANDO1:
@@ -2621,8 +2629,12 @@ COMANDO3:
     BCF BANDERAS, 2
     GOTO resetRBIF
 COMANDO4:
-    BSF BANDERAS, 0
+    BSF VAR, 0
     BCF BANDERAS, 3
+    GOTO resetRBIF
+COMANDO5:
+    BSF BANDERAS, 0
+    BCF VAR, 0
     GOTO resetRBIF
 resetRBIF:
     BCF INTCON, 0
@@ -2647,13 +2659,29 @@ SETUP:
     MOVLW 0b00000001
     MOVWF BANDERAS
 
-    BSF FLAG, 6
+    ;BSF FLAG, 6
 
-    ;MOVLW 0
-    ;MOVWF contadorseg
+    MOVLW 0
+    MOVWF contadordias1
 
-    ;MOVLW 0
-    ;MOVWF contadorsec
+    MOVLW 0
+    MOVWF contadordias2
+
+    MOVLW 1
+    MOVWF contadormeses1
+
+    MOVLW 0
+    MOVWF contadormeses2
+
+    ;Empezar los meses en 1
+    MOVLW 1
+    MOVWF contadormeses
+
+    MOVLW 1
+    MOVWF contadordias
+
+    MOVLW 1
+    MOVWF contadordias1
 
 LOOP:
     ;BTFSC BANDERAS, 0
@@ -2664,50 +2692,11 @@ LOOP:
     GOTO MODO_FECHA
     BTFSC BANDERAS, 2
     GOTO MODO_CONFIGHORA
+    BTFSC VAR, 0
+    GOTO MODO_CONFIGALARMA
     BTFSC BANDERAS, 3
     GOTO MODO_CONFIGFECHA
     GOTO LOOP
-
-;MODO_HORA:
-
-    ;BSF PORTD, X
-    ;METER NUMERO A DIPLAY
-    ;BCF PORTD, C
-
-    ;BTFSS BANDERAS, 4
-    ;GOTO LOOP
-
-    ;CALL DELAY
-
-    ;BSF PORTD, 0
-    ;MOVF contadorseg, W
-    ;CALL TABLA
-    ;MOVWF PORTC
-    ;CALL DELAY
-    ;BCF PORTD, 0
-
-    ;CALL DELAY
-
-    ;BSF PORTD, 1
-    ;MOVF contadorsec, W
-    ;CALL TABLA
-    ;MOVWF PORTC
-    ;CALL DELAY
-    ;BCF PORTD, 1
-
-    ;INCF contadorseg, F
-
-    ;MOVF contadorseg, W
-    ;SUBLW 10
-    ;BTFSC STATUS, 2
-    ;CALL SEGUNDOS
-
-    ;;MOVF contadorsec, W
-    ;;CALL TABLA
-    ;;MOVWF PORTC
-
-    ;BCF BANDERAS, 4
-    ;GOTO LOOP
 MODO_DISPLAY:
     BTFSS BANDERAS, 5
     GOTO LOOP
@@ -2779,6 +2768,48 @@ MODO_DISPLAY:
     BCF BANDERAS, 5
     GOTO LOOP
 MODO_FECHA:
+    BTFSC variablex, 7
+    GOTO ARREGLO
+    BTFSS variablex, 7
+    GOTO MODITO_NORMAL
+
+ARREGLO:
+    BTFSC FLAG, 0
+    CALL INCREMENTARDIAS
+    ;INCF contadordias, F
+
+    BTFSC FLAG, 1
+    CALL DECREMENTARDIAS
+    ;DECF contadordias, F
+
+    BTFSC FLAG, 2
+    CALL INCREMENTARMESES
+    ;INCF contadormeses, F
+
+    BTFSC FLAG, 3
+    CALL DECREMENTARMESES
+    ;DECF contadormeses, F
+
+    ;SAFE ZONE B*TCH
+
+    ;Asegurate que no se pase de maleta con los meses
+    ;MOVF contadormeses, W
+    ;SUBLW 13
+    ;BTFSC STATUS, 2
+    ;CLRF contadormeses
+
+;LOOPERBREAKER:
+    ;Tal vez haya que disminuir el día extra bro.
+
+
+    BCF variablex, 7
+
+    BCF FLAG, 0
+    BCF FLAG, 1
+    BCF FLAG, 2
+    BCF FLAG, 3
+
+MODITO_NORMAL:
     CALL DELAY
 
     ;Filtro de Días
@@ -2788,33 +2819,37 @@ MODO_FECHA:
     ;CALL DIAS
 
     BSF PORTD, 2
-    MOVF contadordias1, W
+    MOVF contadormeses1, W
     CALL TABLA
     MOVWF PORTC
     CALL DELAY
     BCF PORTD, 2
 
     BSF PORTD, 3
-    MOVF contadordias2, W
+    MOVF contadormeses2, W
     CALL TABLA
     MOVWF PORTC
     CALL DELAY
     BCF PORTD, 3
 
     BSF PORTD, 4
-    MOVF contadormeses1, W
+    MOVF contadordias1, W
     CALL TABLA
     MOVWF PORTC
     CALL DELAY
     BCF PORTD, 4
 
     BSF PORTD, 5
-    MOVF contadormeses2, W
+    MOVF contadordias2, W
     CALL TABLA
     MOVWF PORTC
     CALL DELAY
     BCF PORTD, 5
 
+    ;BCF FLAG, 0
+    ;BCF FLAG, 1
+    ;BCF FLAG, 2
+    ;BCF FLAG, 3
     GOTO LOOP
 
 MODO_CONFIGHORA:
@@ -2868,28 +2903,6 @@ MODO_CONFIGHORA:
     BTFSC FLAG, 3
     CALL DECREMENTARMINUTOS
 
-    ;DECF contadorminutos, F
-
-    ;MOVF contadormin, W
-    ;SUBLW 0
-    ;BTFSC STATUS, 2
-    ;DECF contadorminuten, F
-
-    ;MOVF contadormin, W
-    ;SUBLW 0
-    ;BTFSC STATUS, 2
-    ;CALL MOMENTANEO1
-
-
-    ;MOVF contadorminuten, W
-    ;SUBLW 0
-    ;BTFSC STATUS, 2
-    ;CALL MOMENTANEO2
-
-    ;Overflow
-
-    ;Underflow
-
     ;Reset de los segundos
     CLRF contadorseg
     CLRF contadorsec
@@ -2902,8 +2915,13 @@ MODO_CONFIGHORA:
     GOTO LOOP
 
 MODO_CONFIGFECHA:
-GOTO LOOP
+    BSF variablex, 7
+    GOTO MODO_FECHA
 
+MODO_CONFIGALARMA:
+    RETURN
+
+;*********************************Tablas****************************************
 TABLA:
     ADDWF PCL, F
     RETLW 0b0111111 ;0
@@ -2925,22 +2943,18 @@ TABLA:
 
 TABLA2:
     ADDWF PCL, F
-    RETLW 0b0111111 ;0
-    RETLW 0b0000110 ;1
-    RETLW 0b1011011 ;2
-    RETLW 0b1001111 ;3
-    RETLW 0b1100110 ;4
-    RETLW 0b1101101 ;5
-    RETLW 0b1111101 ;6
-    RETLW 0b0000111 ;7
-    RETLW 0b1111111 ;8
-    RETLW 0b1101111 ;9
-    RETLW 0b1110111 ;A
-    RETLW 0b1111100 ;b
-    RETLW 0b0111001 ;C
-    RETLW 0b1011110 ;d
-    RETLW 0b1111001 ;E
-    RETLW 0b1110001 ;F
+    RETLW 31 ;Enero
+    RETLW 28 ;Febrero
+    RETLW 31 ;Marzo
+    RETLW 30 ;Abril
+    RETLW 31 ;Mayo
+    RETLW 30 ;Junio
+    RETLW 31 ;Julio
+    RETLW 31 ;Agosto
+    RETLW 30 ;Septiembre
+    RETLW 31 ;Octubre
+    RETLW 30 ;Noviembre
+    RETLW 31 ;Diciembre
 
 ;******************************Subrutinas***************************************
 SEGUNDOS:
@@ -2991,19 +3005,237 @@ HORAS:
 HORAS2:
     CLRF contadorhrs
     INCF contadorstd, F
+
     RETURN
 DIAS:
+    ;AQUI CAMPEON!
     CLRF contadorstd
     CLRF contadorhrs
     CLRF contadorhoras
 
-    INCF contadordias, W
+    MOVF contadormeses, W
+    SUBLW 1
+    BTFSS STATUS, 2
+    GOTO NEXXT1
+
+    GOTO MESSETEADO31
+
+NEXXT1:
+    MOVF contadormeses, W
+    SUBLW 2
+    BTFSS STATUS, 2
+    GOTO NEXXT2
+
+    GOTO MESSETEADO28
+
+NEXXT2:
+    MOVF contadormeses, W
+    SUBLW 3
+    BTFSS STATUS, 2
+    GOTO NEXXT3
+
+    GOTO MESSETEADO31
+
+NEXXT3:
+    MOVF contadormeses, W
+    SUBLW 4
+    BTFSS STATUS, 2
+    GOTO NEXXT4
+
+    GOTO MESSETEADO30
+
+NEXXT4:
+    MOVF contadormeses, W
+    SUBLW 5
+    BTFSS STATUS, 2
+    GOTO NEXXT5
+
+    GOTO MESSETEADO31
+
+NEXXT5:
+    MOVF contadormeses, W
+    SUBLW 6
+    BTFSS STATUS, 2
+    GOTO NEXXT6
+
+    GOTO MESSETEADO30
+NEXXT6:
+    MOVF contadormeses, W
+    SUBLW 7
+    BTFSS STATUS, 2
+    GOTO NEXXT7
+
+    GOTO MESSETEADO31
+NEXXT7:
+    MOVF contadormeses, W
+    SUBLW 8
+    BTFSS STATUS, 2
+    GOTO NEXXT8
+
+    GOTO MESSETEADO31
+NEXXT8:
+    MOVF contadormeses, W
+    SUBLW 9
+    BTFSS STATUS, 2
+    GOTO NEXXT9
+
+    GOTO MESSETEADO30
+NEXXT9:
+    MOVF contadormeses, W
+    SUBLW 10
+    BTFSS STATUS, 2
+    GOTO NEXXT10
+
+    GOTO MESSETEADO31
+NEXXT10:
+    MOVF contadormeses, W
+    SUBLW 11
+    BTFSS STATUS, 2
+    GOTO NEXXT11
+
+    GOTO MESSETEADO30
+NEXXT11:
+    GOTO MESSETEADO31
+
+MESSETEADO31:
+    MOVF contadordias, W
+    SUBLW 31
+    BTFSC STATUS, 2
+    GOTO ERASADOR31
+
+    INCF contadordias, F
+    INCF contadordias1, F
+
+    MOVF contadordias1, W
+    SUBLW 10
+    BTFSC STATUS, 2
+    INCF contadordias2, F
+
+    MOVF contadordias1, W
+    SUBLW 10
+    BTFSC STATUS, 2
+    CLRF contadordias1
+    GOTO NOMBREBRO
+
+ERASADOR31:
+    MOVLW 1
+    MOVWF contadordias
+    MOVLW 1
+    MOVWF contadordias1
+    MOVLW 0
+    MOVWF contadordias2
+
+    ;INCF contadormeses1, F
+
+    MOVF contadormeses, W
+    SUBLW 12
+    BTFSC STATUS, 2
+    GOTO TRANQUILO
+
+    INCF contadormeses, F
+    INCF contadormeses1, F
+
+    GOTO NOMBREBRO
+
+TRANQUILO:
+    ;Reseteo de los Meses
+    MOVLW 0
+    MOVWF contadormeses2
+    MOVLW 1
+    MOVWF contadormeses1
+    MOVLW 1
+    MOVWF contadormeses
+    GOTO NOMBREBRO
+
+MESSETEADO28:
+    MOVF contadordias, W
+    SUBLW 28
+    BTFSC STATUS, 2
+    GOTO ERASADOR28
+
+    INCF contadordias, F
+    INCF contadordias1, F
+
+    MOVF contadordias1, W
+    SUBLW 10
+    BTFSC STATUS, 2
+    INCF contadordias2, F
+
+    MOVF contadordias1, W
+    SUBLW 10
+    BTFSC STATUS, 2
+    CLRF contadordias1
+    GOTO NOMBREBRO
+
+ERASADOR28:
+    MOVLW 1
+    MOVWF contadordias
+    MOVLW 1
+    MOVWF contadordias1
+    MOVLW 0
+    MOVWF contadordias2
+
+    INCF contadormeses, F
+    INCF contadormeses1, F
+    GOTO NOMBREBRO
+
+MESSETEADO30:
+    MOVF contadordias, W
+    SUBLW 30
+    BTFSC STATUS, 2
+    GOTO ERASADOR30
+
+    INCF contadordias, F
+    INCF contadordias1, F
+
+    MOVF contadordias1, W
+    SUBLW 10
+    BTFSC STATUS, 2
+    INCF contadordias2, F
+
+    MOVF contadordias1, W
+    SUBLW 10
+    BTFSC STATUS, 2
+    CLRF contadordias1
+    GOTO NOMBREBRO
+
+ERASADOR30:
+    MOVLW 1
+    MOVWF contadordias
+    MOVLW 1
+    MOVWF contadordias1
+    MOVLW 0
+    MOVWF contadordias2
+
+    MOVF contadormeses1, W
+    SUBLW 9
+    BTFSC STATUS, 2
+    GOTO EXCEPCIONCITA
+
+    INCF contadormeses1, F
+    INCF contadormeses, F
+
+    GOTO NOMBREBRO
+
+EXCEPCIONCITA:
+    MOVLW 0
+    MOVWF contadormeses1
+    MOVLW 1
+    MOVWF contadormeses2
+    MOVLW 10
+    MOVWF contadormeses
+
+    GOTO NOMBREBRO
+
+NOMBREBRO:
     RETURN
+
 DELAY:
     BTFSS BANDERAS, 5
     GOTO DELAY
     BCF BANDERAS, 5
     RETURN
+
 INCREMENTARMINUTOS:
     INCF contadormin, F
 
@@ -3224,7 +3456,440 @@ CASO4:
     MOVWF contadorhrs
     BSF BANDOLERO, 3
     RETURN
+INCREMENTARDIAS:
+
+    MOVF contadormeses, W
+    SUBLW 1
+    BTFSS STATUS, 2
+    GOTO NEXT1
+
+    GOTO BIGBOYTEMPO
+
+NEXT1:
+    MOVF contadormeses, W
+    SUBLW 2
+    BTFSS STATUS, 2
+    GOTO NEXT2
+
+    GOTO MEDIUMBOYTEMPO
+
+NEXT2:
+    MOVF contadormeses, W
+    SUBLW 3
+    BTFSS STATUS, 2
+    GOTO NEXT3
+
+    GOTO BIGBOYTEMPO
+
+NEXT3:
+    MOVF contadormeses, W
+    SUBLW 4
+    BTFSS STATUS, 2
+    GOTO NEXT4
+
+    GOTO LITTLEBOYTEMPO
+
+NEXT4:
+    MOVF contadormeses, W
+    SUBLW 5
+    BTFSS STATUS, 2
+    GOTO NEXT5
+
+    GOTO BIGBOYTEMPO
+
+NEXT5:
+    MOVF contadormeses, W
+    SUBLW 6
+    BTFSS STATUS, 2
+    GOTO NEXT6
+
+    GOTO LITTLEBOYTEMPO
+NEXT6:
+    MOVF contadormeses, W
+    SUBLW 7
+    BTFSS STATUS, 2
+    GOTO NEXT7
+
+    GOTO BIGBOYTEMPO
+NEXT7:
+    MOVF contadormeses, W
+    SUBLW 8
+    BTFSS STATUS, 2
+    GOTO NEXT8
+
+    GOTO BIGBOYTEMPO
+NEXT8:
+    MOVF contadormeses, W
+    SUBLW 9
+    BTFSS STATUS, 2
+    GOTO NEXT9
+
+    GOTO LITTLEBOYTEMPO
+NEXT9:
+    MOVF contadormeses, W
+    SUBLW 10
+    BTFSS STATUS, 2
+    GOTO NEXT10
+
+    GOTO BIGBOYTEMPO
+NEXT10:
+    MOVF contadormeses, W
+    SUBLW 11
+    BTFSS STATUS, 2
+    GOTO NEXT11
+
+    GOTO LITTLEBOYTEMPO
+NEXT11:
+    MOVLW 31
+    GOTO BIGBOYTEMPO
+
+MEDIUMBOYTEMPO:
+    MOVF contadordias, W
+    SUBLW 28
+    BTFSC STATUS, 2
+    GOTO BORRA1
+
+    INCF contadordias, F
+    INCF contadordias1, F
+
+    MOVF contadordias1, W
+    SUBLW 10
+    BTFSC STATUS, 2
+    INCF contadordias2, F
+
+    MOVF contadordias1, W
+    SUBLW 10
+    BTFSC STATUS, 2
+    CLRF contadordias1
+
+    GOTO OKIDOKI
+
+
+LITTLEBOYTEMPO:
+    MOVF contadordias, W
+    SUBLW 30
+    BTFSC STATUS, 2
+    GOTO BORRA1
+
+    INCF contadordias, F
+    INCF contadordias1, F
+
+    MOVF contadordias1, W
+    SUBLW 10
+    BTFSC STATUS, 2
+    INCF contadordias2, F
+
+    MOVF contadordias1, W
+    SUBLW 10
+    BTFSC STATUS, 2
+    CLRF contadordias1
+
+    GOTO OKIDOKI
+
 BIGBOYTEMPO:
+    MOVF contadordias, W
+    SUBLW 31
+    BTFSC STATUS, 2
+    GOTO BORRA1
+
+    INCF contadordias, F
+    INCF contadordias1, F
+
+    MOVF contadordias1, W
+    SUBLW 10
+    BTFSC STATUS, 2
+    INCF contadordias2, F
+
+    MOVF contadordias1, W
+    SUBLW 10
+    BTFSC STATUS, 2
+    CLRF contadordias1
+
+    GOTO OKIDOKI
+
+BORRA1:
+    MOVLW 1
+    MOVWF contadordias
+
+    MOVLW 1
+    MOVWF contadordias1
+
+    MOVLW 0
+    MOVWF contadordias2
+
+    GOTO OKIDOKI
+
+OKIDOKI:
+    RETURN
+
+DECREMENTARDIAS:
+    BANKSEL contadordias1
+    DECF contadordias, F
+
+NEXT0:
+    MOVF contadormeses, W
+    SUBLW 1
+    BTFSS STATUS, 2
+    GOTO NEXT1X
+
+    GOTO MODO31
+
+NEXT1X:
+    MOVF contadormeses, W
+    SUBLW 2
+    BTFSS STATUS, 2
+    GOTO NEXT2X
+
+    GOTO MODO28
+
+NEXT2X:
+    MOVF contadormeses, W
+    SUBLW 3
+    BTFSS STATUS, 2
+    GOTO NEXT3X
+
+    GOTO MODO31
+
+NEXT3X:
+    MOVF contadormeses, W
+    SUBLW 4
+    BTFSS STATUS, 2
+    GOTO NEXT4X
+
+    GOTO MODO30
+
+NEXT4X:
+    MOVF contadormeses, W
+    SUBLW 5
+    BTFSS STATUS, 2
+    GOTO NEXT5X
+
+    GOTO MODO31
+
+NEXT5X:
+    MOVF contadormeses, W
+    SUBLW 6
+    BTFSS STATUS, 2
+    GOTO NEXT6X
+
+    GOTO MODO30
+NEXT6X:
+    MOVF contadormeses, W
+    SUBLW 7
+    BTFSS STATUS, 2
+    GOTO NEXT7X
+
+    GOTO MODO31
+NEXT7X:
+    MOVF contadormeses, W
+    SUBLW 8
+    BTFSS STATUS, 2
+    GOTO NEXT8X
+
+    GOTO MODO31
+NEXT8X:
+    MOVF contadormeses, W
+    SUBLW 9
+    BTFSS STATUS, 2
+    GOTO NEXT9X
+
+    GOTO MODO30
+NEXT9X:
+    MOVF contadormeses, W
+    SUBLW 10
+    BTFSS STATUS, 2
+    GOTO NEXT10X
+
+    GOTO MODO31
+NEXT10X:
+    MOVF contadormeses, W
+    SUBLW 11
+    BTFSS STATUS, 2
+    GOTO NEXT11X
+
+    GOTO MODO30
+NEXT11X:
+    GOTO MODO31
+
+MODO31:
+    ;Underflow
+    MOVF contadordias, W
+    SUBLW 0
+    BTFSC STATUS, 2
+    GOTO ERASER31
+
+    ;Modo Normal
+    MOVF contadordias1, W
+    SUBLW 0
+    BTFSC STATUS, 2
+    DECF contadordias2, F
+
+    MOVF contadordias1, W
+    SUBLW 0
+    BTFSS STATUS, 2
+    GOTO BROCOCONDOSOJOS3
+
+    MOVLW 9
+    MOVWF contadordias1
+    GOTO OJITOSLINDOS
+
+BROCOCONDOSOJOS3:
+    DECF contadordias1, F
+    GOTO OJITOSLINDOS
+
+MODO28:
+    ;Underflow
+    MOVF contadordias, W
+    SUBLW 0
+    BTFSC STATUS, 2
+    GOTO ERASER28
+
+    ;Modo Normal
+    MOVF contadordias1, W
+    SUBLW 0
+    BTFSC STATUS, 2
+    DECF contadordias2, F
+
+    MOVF contadordias1, W
+    SUBLW 0
+    BTFSS STATUS, 2
+    GOTO BROCOCONDOSOJOS2
+
+    MOVLW 9
+    MOVWF contadordias1
+    GOTO OJITOSLINDOS
+
+BROCOCONDOSOJOS2:
+    DECF contadordias1, F
+    GOTO OJITOSLINDOS
+
+MODO30:
+    ;Underflow
+    MOVF contadordias, W
+    SUBLW 0
+    BTFSC STATUS, 2
+    GOTO ERASER30
+
+    ;Modo Normal
+    MOVF contadordias1, W
+    SUBLW 0
+    BTFSC STATUS, 2
+    DECF contadordias2, F
+
+    MOVF contadordias1, W
+    SUBLW 0
+    BTFSS STATUS, 2
+    GOTO BROCOCONDOSOJOS
+
+    MOVLW 9
+    MOVWF contadordias1
+    GOTO OJITOSLINDOS
+
+BROCOCONDOSOJOS:
+    DECF contadordias1, F
+    GOTO OJITOSLINDOS
+
+ERASER30:
+    MOVLW 30
+    MOVWF contadordias
+    MOVLW 0
+    MOVWF contadordias1
+    MOVLW 3
+    MOVWF contadordias2
+    GOTO OJITOSLINDOS
+ERASER31:
+    MOVLW 31
+    MOVWF contadordias
+    MOVLW 1
+    MOVWF contadordias1
+    MOVLW 3
+    MOVWF contadordias2
+    GOTO OJITOSLINDOS
+ERASER28:
+    MOVLW 28
+    MOVWF contadordias
+    MOVLW 8
+    MOVWF contadordias1
+    MOVLW 2
+    MOVWF contadordias2
+    GOTO OJITOSLINDOS
+OJITOSLINDOS:
+    RETURN
+
+INCREMENTARMESES:
+    INCF contadormeses, F
+    INCF contadormeses1, F
+
+    MOVF contadormeses, W
+    SUBLW 13
+    BTFSC STATUS, 2
+    GOTO MANO
+    GOTO CONTINUE
+MANO:
+    CLRF contadormeses2
+    MOVLW 1
+    MOVWF contadormeses1
+    MOVLW 1
+    MOVWF contadormeses
+CONTINUE:
+    MOVF contadormeses1, W
+    SUBLW 10
+    BTFSC STATUS, 2
+    INCF contadormeses2, F
+
+    MOVF contadormeses1, W
+    SUBLW 10
+    BTFSC STATUS, 2
+    CLRF contadormeses1
+
+    BCF BANDOLERO, 6
+    MOVLW 1
+    MOVWF contadordias
+    MOVLW 1
+    MOVWF contadordias1
+    CLRF contadordias2
+    RETURN
+
+DECREMENTARMESES:
+    BANKSEL contadormeses
+    DECF contadormeses, F
+
+    MOVF contadormeses, W
+    SUBLW 0
+    BTFSC STATUS, 2
+    GOTO MOJITO
+
+    MOVF contadormeses, W
+    SUBLW 9
+    BTFSC STATUS, 2
+    GOTO EXCEPTION
+
+    DECF contadormeses1, F
+
+    GOTO FINAL
+
+MOJITO:
+    MOVLW 12
+    MOVWF contadormeses
+    MOVLW 2
+    MOVWF contadormeses1
+    MOVLW 1
+    MOVWF contadormeses2
+    GOTO FINAL
+
+EXCEPTION:
+    MOVLW 0
+    MOVWF contadormeses2
+    MOVLW 9
+    MOVWF contadormeses1
+
+FINAL:
+    MOVLW 1
+    MOVWF contadordias
+    MOVLW 1
+    MOVWF contadordias1
+    CLRF contadordias2
+    BCF BANDOLERO, 6
     RETURN
 
 ;****************************Configuraciones************************************
