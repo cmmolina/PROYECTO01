@@ -33,6 +33,8 @@ PROCESSOR 16F887
 PSECT udata_bank0
  BANDERAS:
     DS 1
+ VANDERAS:
+    DS 1
  cont60ms: 
     DS 1
  W_TEMP:
@@ -122,7 +124,6 @@ TIMER0:
     CLRF cont60ms               ;Se limpia el contador 
     BCF INTCON, 2               ;Se limpia la interrupción del TMR0
     GOTO pushButtons             
-
 pushButtons:
     BTFSS INTCON, 0             ;Si hay interrupción del PushButton, se salta la siguiente linea.
     GOTO POP
@@ -159,9 +160,11 @@ MODO:
     GOTO COMANDO2
     BTFSC BANDERAS, 2           ;Se selecciona Modo Configuración de Fecha
     GOTO COMANDO3
+    BTFSC VANDERAS, 4
+    GOTO COMANDO4
     BTFSC BANDERAS, 3           ;Se selecciona Modo Hora
-    GOTO COMANDO4            
-    
+    GOTO COMANDO5            
+   
     GOTO resetRBIF
 COMANDO1:
     BSF BANDERAS, 1
@@ -172,10 +175,14 @@ COMANDO2:
     BCF BANDERAS, 1
     GOTO resetRBIF
 COMANDO3:
-    BSF BANDERAS, 3
+    BSF VANDERAS, 4
     BCF BANDERAS, 2
     GOTO resetRBIF 
-COMANDO4: 
+COMANDO4:
+    BSF BANDERAS, 3
+    BCF VANDERAS, 4
+    GOTO resetRBIF 
+COMANDO5: 
     BSF BANDERAS, 0
     BCF BANDERAS, 3
     GOTO resetRBIF
@@ -227,17 +234,37 @@ SETUP:
     MOVWF contadordias1
     
 LOOP:
-    ;BTFSC BANDERAS, 0 
-    ;GOTO MODO_HORA
     BTFSC BANDERAS, 0
     GOTO MODO_DISPLAY
     BTFSC BANDERAS, 1
     GOTO MODO_FECHA
     BTFSC BANDERAS, 2
     GOTO MODO_CONFIGHORA
+    BTFSC VANDERAS, 4
+    GOTO MODO_CONFIGALARMA
     BTFSC BANDERAS, 3
     GOTO MODO_CONFIGFECHA
     GOTO LOOP
+    
+TABLA:
+    ADDWF PCL, F
+    RETLW 0b0111111	;0
+    RETLW 0b0000110	;1 
+    RETLW 0b1011011	;2 
+    RETLW 0b1001111	;3 
+    RETLW 0b1100110	;4 
+    RETLW 0b1101101	;5 
+    RETLW 0b1111101	;6 
+    RETLW 0b0000111	;7 
+    RETLW 0b1111111	;8 
+    RETLW 0b1101111	;9 
+    RETLW 0b1110111	;A 
+    RETLW 0b1111100	;b
+    RETLW 0b0111001	;C 
+    RETLW 0b1011110	;d 
+    RETLW 0b1111001	;E
+    RETLW 0b1110001	;F 
+    
 MODO_DISPLAY: 
     BTFSS BANDERAS, 5
     GOTO LOOP
@@ -458,43 +485,11 @@ MODO_CONFIGHORA:
 MODO_CONFIGFECHA:
     BSF variablex, 7
     GOTO MODO_FECHA
-
+    
+MODO_CONFIGALARMA: 
+    GOTO LOOP
     
 ;*********************************Tablas****************************************
-TABLA:
-    ADDWF PCL, F
-    RETLW 0b0111111	;0
-    RETLW 0b0000110	;1 
-    RETLW 0b1011011	;2 
-    RETLW 0b1001111	;3 
-    RETLW 0b1100110	;4 
-    RETLW 0b1101101	;5 
-    RETLW 0b1111101	;6 
-    RETLW 0b0000111	;7 
-    RETLW 0b1111111	;8 
-    RETLW 0b1101111	;9 
-    RETLW 0b1110111	;A 
-    RETLW 0b1111100	;b
-    RETLW 0b0111001	;C 
-    RETLW 0b1011110	;d 
-    RETLW 0b1111001	;E
-    RETLW 0b1110001	;F 
-
-TABLA2: 
-    ADDWF PCL, F
-    RETLW 31	        ;Enero
-    RETLW 28     	;Febrero
-    RETLW 31     	;Marzo
-    RETLW 30     	;Abril
-    RETLW 31	        ;Mayo
-    RETLW 30	        ;Junio
-    RETLW 31            ;Julio
-    RETLW 31  	        ;Agosto
-    RETLW 30    	;Septiembre
-    RETLW 31     	;Octubre
-    RETLW 30     	;Noviembre
-    RETLW 31     	;Diciembre    
-
 ;******************************Subrutinas***************************************
 SEGUNDOS: 
     CLRF contadorseg
