@@ -2498,15 +2498,27 @@ PSECT udata_bank0
     DS 1
  contadorminutos:
     DS 1
+ contadorminutos2:
+    DS 1
  contadormin:
+    DS 1
+ contadormin2:
     DS 1
  contadorminuten:
     DS 1
+ contadorminuten2:
+    DS 1
  contadorhoras:
+    DS 1
+ contadorhoras2:
     DS 1
  contadorhrs:
     DS 1
+ contadorhrs2:
+    DS 1
  contadorstd:
+    DS 1
+ contadorstd2:
     DS 1
  contadordias:
     DS 1
@@ -2524,11 +2536,33 @@ PSECT udata_bank0
     DS 1
  FLAG:
     DS 1
+ FLAG2:
+    DS 1
  BANDOLERO:
+    DS 1
+ BANDOLERO2:
     DS 1
  variablex:
     DS 1
  contadordiasx:
+    DS 1
+ LASTFLAG:
+    DS 1
+ contadorvariable:
+    DS 1
+ contadorvariable1:
+    DS 1
+ contadorvariable2:
+    DS 1
+ contadorvariable3:
+    DS 1
+ contadorvariable4:
+    DS 1
+ contadorvariable5:
+    DS 1
+ contadorvariable6:
+    DS 1
+ contadorvariable7:
     DS 1
 ;*******************************************************************************
 ; Vector Reset
@@ -2555,11 +2589,11 @@ ISR:
 
     INCF cont60ms, F
     MOVF cont60ms, W
-    SUBLW 2
+    SUBLW 3
     BTFSC STATUS, 2
     GOTO TIMER0 ;Revisamos si han pasado 20ms, 50 veces. Es decir, si ha pasado 1 minuto.
 
-    MOVLW 200
+    MOVLW 209
     MOVWF TMR0 ;Volvemos a cargar el delay.
 
     BCF INTCON, 2
@@ -2567,7 +2601,7 @@ ISR:
 TIMER0:
     BSF BANDERAS, 4 ;Se hace entender que ha pasado 1 segundo
 
-    MOVLW 200
+    MOVLW 209
     MOVWF TMR0 ;Volvemos a cargar el delay
 
     CLRF cont60ms ;Se limpia el contador
@@ -2576,6 +2610,10 @@ TIMER0:
 pushButtons:
     BTFSS INTCON, 0 ;Si hay interrupción del PushButton, se salta la siguiente linea.
     GOTO POP
+
+
+    BTFSS VANDERAS, 6
+    BSF VANDERAS, 6
 
     BANKSEL PORTB ;*Se toma como set el push que se seleccione...
     BTFSC PORTB, 0 ;¿Se presionó el botón de Display1 Up?
@@ -2586,10 +2624,24 @@ pushButtons:
     GOTO DISPLAY2UP
     BTFSC PORTB, 3 ;¿Se presionó el botón de Display2 Down?
     GOTO DISPLAY2DOWN
-    BTFSC PORTB, 4 ;¿Se presionó el botón de Modo (Hora/Fecha/Config.Hora/Config.Fecha)?
+    BTFSC PORTB, 4 ;¿Se presionó el botón de Modo (Hora/Fecha/Config.Hora/Config. Alarma/Config.Fecha)?
     GOTO MODO
+    BTFSC PORTB, 5 ;¿Se presionó el botón de ACTIVAR?
+    GOTO ACTIVAR
+    BTFSC PORTB, 6 ;¿Se presionó el botón de DESACTIVAR?
+    GOTO DESACTIVAR
 
     GOTO resetRBIF
+
+ACTIVAR:
+    BSF VANDERAS, 3
+    GOTO resetRBIF
+
+DESACTIVAR:
+    BCF VANDERAS, 3
+    BCF PORTA, 7
+    GOTO resetRBIF
+
 DISPLAY1UP:
     BSF FLAG, 0
     GOTO resetRBIF
@@ -2648,7 +2700,7 @@ POP:
 ; Código Principal
 ;*******************************************************************************
 PSECT CODE, delta=2, abs
- ;ORG 0x0100
+ ;zzORG 0x0100
 SETUP:
     CALL CONFIG_IO
     CALL CONFIG_INTERRUPTS
@@ -2682,9 +2734,13 @@ SETUP:
     MOVLW 1
     MOVWF contadordias1
 
+
+
 LOOP:
-    ;BTFSC BANDERAS, 0
-    ;GOTO MODO_HORA
+    BTFSS VANDERAS, 6
+    GOTO LOOP
+    GOTO ON
+ON:
     BTFSC BANDERAS, 0
     GOTO MODO_DISPLAY
     BTFSC BANDERAS, 1
@@ -2783,9 +2839,127 @@ MODO_DISPLAY:
     BCF PORTA, 1
     BCF PORTA, 2
     BCF PORTA, 3
+    BCF PORTA, 5
     BCF BANDERAS, 4
     BCF BANDERAS, 5
+
+    BTFSC VANDERAS, 3
+    GOTO REVISION_CONSTANTE
+    GOTO ONO
+
+REVISION_CONSTANTE:
+   ;MOVF contadorminutos2, W
+   ;MOVWF contadorvariable
+
+   ;MOVF contadorminutos, W
+   ;MOVWF contadorvariable1
+
+   ;MOVF contadorhoras2, W
+   ;MOVWF contadorvariable2
+
+   ;MOVF contadorhoras, W
+   ;MOVWF contadorvariable3
+
+   MOVF contadormin, W
+   MOVWF contadorvariable
+
+   MOVF contadorminuten, W
+   MOVWF contadorvariable2
+
+   MOVF contadormin2, W
+   MOVWF contadorvariable1
+
+   MOVF contadorminuten2, W
+   MOVWF contadorvariable3
+
+   MOVF contadorhrs, W
+   MOVWF contadorvariable4
+
+   MOVF contadorhrs2, W
+   MOVWF contadorvariable5
+
+   MOVF contadorstd, W
+   MOVWF contadorvariable6
+
+   MOVF contadorstd2, W
+   MOVWF contadorvariable7
+
+PASO1:
+    MOVF contadorvariable1, W
+    SUBLW 0
+    BTFSC STATUS, 2
+    GOTO ELPASOTEXAS
+    DECF contadorvariable1, F
+
+    DECF contadorvariable, F ;contadormin [-2] contadormin2 [0]
+    GOTO PASO1 ;contadorvariable contadorvariable1
+
+ELPASOTEXAS:
+    MOVF contadorvariable3, W
+    SUBLW 0
+    BTFSC STATUS, 2
+    GOTO NEXTO
+    DECF contadorvariable3, F
+
+    DECF contadorvariable2, F
+    GOTO ELPASOTEXAS
+
+NEXTO:
+    MOVF contadorvariable5, W
+    SUBLW 0
+    BTFSC STATUS, 2
+    GOTO SNEAKY
+    DECF contadorvariable5, F
+
+    DECF contadorvariable4, F
+    GOTO NEXTO
+
+SNEAKY:
+    MOVF contadorvariable7, W
+    SUBLW 0
+    BTFSC STATUS, 2
+    GOTO ADELANTO
+    DECF contadorvariable7, F
+
+    DECF contadorvariable6, F
+    GOTO SNEAKY
+
+ADELANTO:
+    MOVF contadorvariable, W
+    SUBLW 0
+    BTFSC STATUS, 2
+    INCF LASTFLAG, F
+
+    MOVF contadorvariable2, W
+    SUBLW 0
+    BTFSC STATUS, 2
+    INCF LASTFLAG, F
+
+    MOVF contadorvariable4, W
+    SUBLW 0
+    BTFSC STATUS, 2
+    INCF LASTFLAG, F
+
+    MOVF contadorvariable6, W
+    SUBLW 0
+    BTFSC STATUS, 2
+    INCF LASTFLAG, F
+
+    MOVF LASTFLAG, W
+    SUBLW 4
+    BTFSC STATUS, 2
+    GOTO MANOSELOGRO
+    CLRF LASTFLAG
+    GOTO ONO
+
+
+MANOSELOGRO:
+    BSF PORTA, 7
+    CLRF LASTFLAG
+
+ONO:
     GOTO LOOP
+
 MODO_FECHA:
     BTFSC variablex, 7
     GOTO ARREGLO
@@ -2808,18 +2982,6 @@ ARREGLO:
     BTFSC FLAG, 3
     CALL DECREMENTARMESES
     ;DECF contadormeses, F
-
-    ;SAFE ZONE B*TCH
-
-    ;Asegurate que no se pase de maleta con los meses
-    ;MOVF contadormeses, W
-    ;SUBLW 13
-    ;BTFSC STATUS, 2
-    ;CLRF contadormeses
-
-;LOOPERBREAKER:
-    ;Tal vez haya que disminuir el día extra bro.
-
 
     BCF variablex, 7
 
@@ -2877,6 +3039,7 @@ MODO_CONFIGHORA:
 
 ;FLAG, 2 -> DISPLAY2UP (Minutos)
 ;FLAG, 3 -> DISPLAY2DOWN (Minutos)
+    BSF PORTA, 4
 
     BSF PORTD, 2
     MOVF contadormin, W
@@ -2934,13 +3097,74 @@ MODO_CONFIGHORA:
     GOTO LOOP
 
 MODO_CONFIGFECHA:
+    BCF PORTA, 6
+    BSF PORTA, 5
     BSF variablex, 7
     GOTO MODO_FECHA
 
 MODO_CONFIGALARMA:
+    BSF PORTD, 2
+    MOVF contadormin2, W
+    CALL TABLA
+    MOVWF PORTC
+    CALL DELAY
+    BCF PORTD, 2
+
+    BSF PORTD, 3
+    MOVF contadorminuten2, W
+    CALL TABLA
+    MOVWF PORTC
+    CALL DELAY
+    BCF PORTD, 3
+
+    BSF PORTD, 4
+    MOVF contadorhrs2, W
+    CALL TABLA
+    MOVWF PORTC
+    CALL DELAY
+    BCF PORTD, 4
+
+    BSF PORTD, 5
+    MOVF contadorstd2, W
+    CALL TABLA
+    MOVWF PORTC
+    CALL DELAY
+    BCF PORTD, 5
+
+    BCF PORTA, 4
+    BSF PORTA, 6
+
+    ;Incrementar Horas
+    BTFSC FLAG, 0
+    CALL INCREMENTARHORAS2
+
+    ;Decrementar Horas
+    BTFSC FLAG, 1
+    CALL DECREMENTARHORAS2
+
+    ;Incrementar Minutos
+    BTFSC FLAG, 2
+    CALL INCREMENTARMINUTOS2
+
+    ;Decrementar Minutos
+    BTFSC FLAG, 3
+    CALL DECREMENTARMINUTOS2
+
+    ;Reset de los segundos
+    CLRF contadorseg
+    CLRF contadorsec
+
+    ;Borración de cualquier botón que se haya presionado
+    BCF FLAG, 0
+    BCF FLAG, 1
+    BCF FLAG, 2
+    BCF FLAG, 3
+
     GOTO LOOP
 
 ;*********************************Tablas****************************************
+
+
 ;******************************Subrutinas***************************************
 SEGUNDOS:
     CLRF contadorseg
@@ -3240,6 +3464,27 @@ INCREMENTARMINUTOS:
     CLRF contadorminuten
 
     RETURN
+
+INCREMENTARMINUTOS2:
+    INCF contadormin2, F
+
+    MOVF contadormin2, W
+    SUBLW 10
+    BTFSC STATUS, 2
+    INCF contadorminuten2, F
+
+    MOVF contadormin2, W
+    SUBLW 10
+    BTFSC STATUS, 2
+    CLRF contadormin2
+
+    MOVF contadorminuten2, W
+    SUBLW 6
+    BTFSC STATUS, 2
+    CLRF contadorminuten2
+
+    RETURN
+
 INCREMENTARHORAS:
     INCF contadorhrs, F
     INCF contadorhoras, F
@@ -3268,6 +3513,37 @@ OJITO:
     CLRF contadorhrs
     CLRF contadorstd
     CLRF contadorhoras
+    RETURN
+
+
+INCREMENTARHORAS2:
+    INCF contadorhrs2, F
+    INCF contadorhoras2, F
+
+    MOVF contadorhoras2, W
+    SUBLW 24
+    BTFSC STATUS, 2
+    GOTO OJITO2
+
+    MOVF contadorhrs2, W
+    SUBLW 10
+    BTFSC STATUS, 2
+    INCF contadorstd2, F
+
+    MOVF contadorhrs2, W
+    SUBLW 10
+    BTFSC STATUS, 2
+    CLRF contadorhrs2
+
+    MOVF contadorstd2, W
+    SUBLW 6
+    BTFSC STATUS, 2
+    CLRF contadorstd2
+    RETURN
+OJITO2:
+    CLRF contadorhrs2
+    CLRF contadorstd2
+    CLRF contadorhoras2
     RETURN
 
 DECREMENTARMINUTOS:
@@ -3333,6 +3609,71 @@ CASO9:
 CASO5:
     MOVLW 5
     MOVWF contadorminuten
+    RETURN
+
+DECREMENTARMINUTOS2:
+    ;Decremento de Display 2 (Unidades)
+    MOVF contadormin2, W
+    SUBLW 0
+    BTFSC STATUS, 2
+    CALL PRIORITY1
+
+    MOVF contadormin2, W
+    SUBLW 0
+    BTFSS STATUS, 2
+    BCF FLAG2, 6
+
+    BTFSS FLAG2, 6
+    CALL NORMALCURSO
+
+    BTFSC FLAG2, 6
+    CALL CASO9_2
+
+    BTFSS FLAG2, 7
+    GOTO FINALITO2
+
+    ;Decrementeo de Display 2 (Decenas)
+    MOVF contadorminuten2, W
+    SUBLW 0
+    BTFSC STATUS, 2
+    CALL PRIORITY2
+
+    MOVF contadorminuten2, W
+    SUBLW 0
+    BTFSS STATUS, 2
+    BCF FLAG2, 5
+
+    BTFSS FLAG2, 5
+    CALL NORMALCURSO2
+
+    BTFSC FLAG2, 5
+    CALL CASO5_2
+
+FINALITO2:
+    BCF FLAG2, 7
+    BCF FLAG2, 6
+    BCF FLAG2, 5
+    RETURN
+NORMALCURSO:
+    DECF contadormin2, F
+    RETURN
+NORMALCURSO2:
+    DECF contadorminuten2, F
+    RETURN
+PRIORITY1:
+    BSF FLAG2, 6
+    RETURN
+PRIORITY2:
+    BSF FLAG2, 5
+    RETURN
+CASO9_2:
+    MOVLW 9
+    MOVWF contadormin2
+    BSF FLAG2, 7
+    RETURN
+CASO5_2:
+    MOVLW 5
+    MOVWF contadorminuten2
     RETURN
 
 DECREMENTARHORAS:
@@ -3441,6 +3782,114 @@ CASO4:
     MOVWF contadorhrs
     BSF BANDOLERO, 3
     RETURN
+
+DECREMENTARHORAS2:
+     ;Decrementeo de Display 4 (Unidades)
+
+    ;Venimos de 24 horas?
+    MOVF contadorhoras2, W
+    SUBLW 0
+    BTFSC STATUS, 2
+    BSF BANDOLERO2, 0
+
+    ;Venimos de una hora diferente a las 24 horas?
+    MOVF contadorhoras2, W
+    SUBLW 0
+    BTFSS STATUS, 2
+    BSF BANDOLERO2, 1
+
+    ;Estamos en 0?
+    MOVF contadorhrs2, W
+    SUBLW 0
+    BTFSC STATUS, 2
+    CALL PRIORITY3
+
+    ;Estamos en 0?
+    MOVF contadorhrs2, W
+    SUBLW 0
+    BTFSS STATUS, 2
+    BCF BANDOLERO2, 2
+
+    BTFSS BANDOLERO2, 2
+    CALL NORMALCURSO3
+
+    BTFSC BANDOLERO2, 2
+    CALL FILTROCASE
+
+    ;Decrementeo de Display 5 (Decenas)
+    BTFSS BANDOLERO2, 3
+    GOTO FINALITOGOL2
+
+    MOVF contadorstd2, W
+    SUBLW 0
+    BTFSC STATUS, 2
+    CALL PRIORITY4
+
+    MOVF contadorstd2, W
+    SUBLW 0
+    BTFSS STATUS, 2
+    BCF BANDOLERO2, 4
+
+    BTFSS BANDOLERO2, 4
+    CALL NORMALCURSO4
+
+    BTFSC BANDOLERO2, 4
+    CALL FILTROCASE2
+
+FINALITOGOL2:
+    BCF BANDOLERO2, 0
+    BCF BANDOLERO2, 1
+    BCF BANDOLERO2, 2
+    BCF BANDOLERO2, 3
+    BCF BANDOLERO2, 4
+    RETURN
+
+NORMALCURSO3:
+    DECF contadorhrs2, F
+    DECF contadorhoras2, F
+    RETURN
+NORMALCURSO4:
+    DECF contadorstd2, F
+    RETURN
+PRIORITY3:
+    BSF BANDOLERO2, 2
+    RETURN
+PRIORITY4:
+    BSF BANDOLERO2, 4
+    RETURN
+FILTROCASE:
+    BTFSC BANDOLERO2, 0
+    CALL CASO4_2
+    BTFSC BANDOLERO2, 1
+    CALL CASO92_2
+    RETURN
+FILTROCASE2:
+    BTFSC BANDOLERO2, 0
+    CALL CASO2_2
+    BTFSC BANDOLERO2, 1
+    CALL CASOMEH2
+    RETURN
+CASOMEH2:
+    DECF contadorstd2, F
+    RETURN
+CASO2_2:
+    MOVLW 2
+    MOVWF contadorstd2
+    RETURN
+CASO92_2:
+    DECF contadorhoras2, F
+    MOVLW 9
+    MOVWF contadorhrs2
+    BSF BANDOLERO2, 3
+    RETURN
+CASO4_2:
+    MOVLW 23
+    MOVWF contadorhoras2
+    MOVLW 3
+    MOVWF contadorhrs2
+    BSF BANDOLERO2, 3
+    RETURN
+
 INCREMENTARDIAS:
 
     MOVF contadormeses, W
@@ -3922,7 +4371,7 @@ CONFIG_TMR0:
                                 ;Prescaler 1:256
 
     BANKSEL PORTA
-    MOVLW 200
+    MOVLW 209
     ;MOVLW 63
     MOVWF TMR0 ;Se carga el delay al TMR0
     BCF INTCON, 2 ;La interrupción del TMR0 se borra al inicio
